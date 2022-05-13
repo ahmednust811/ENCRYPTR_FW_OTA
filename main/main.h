@@ -25,7 +25,7 @@
 
 
 xQueueHandle   gOTAMQueue;
-
+void wifi_init_sta(void);
 //uint8_t BME680_CHIPID;
 
 
@@ -33,7 +33,7 @@ xQueueHandle   gOTAMQueue;
 
 
 //QueueHandle_t xQueue1;
-
+void mqtt_app_start(void);
 
 /**********************************************TYPEDEFS******************************************/
 

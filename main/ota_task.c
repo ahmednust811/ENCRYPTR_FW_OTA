@@ -6,17 +6,23 @@
  */
 
 #include "ota_task.h"
-#include "config_params.h"
+#include "main.h"
 #include "esp_https_server.h"
 
 
-#define CLOUD_OTA_BUFFER_SIZE (3*1024)
+#define CLOUD_OTA_BUFFER_SIZE (4*1024)
 #define CERT_LENGTH 1024
 
 
+
 char signature[SIGNATURE_MAX_LENGTH];
+
+//char ota_url[] = "https://esp32test-en.s3.us-east-1.amazonaws.com/secure_ota_esp32_v1.bin?response-content-disposition=inline&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEIL%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCmFwLXNvdXRoLTEiSDBGAiEA4kDYsYVjbcVaj92MpS4H4%2BqVNSAHraYeywGT0BZCgOECIQDKdgQ1M3cNlFJunu5chVj7A3bbUMP%2FikaIT50rrrhB2yr7AghcEAAaDDc4MTE4MzA3ODQ2NyIMPDEorTb7X4xFIPwYKtgC%2FTRgdKW7jaNMtQY4Pr60crwREuiACl8lBaKoPJUure3I2zAsMajCf9YGGnVPQX9YR9ulMxEKoQTgV4rFXysh3DguFWFqOTW57wa5c%2FVv6PcE0hI2TtOhU3Thw4N5GRmQD223LAZeaaB9edycqcjARTAVo8tdhWhcQaJR9Zsb%2FwRK%2BBF6bdZXDQTv90axaFtGGnMF2qxUhOg0Gi0abR1TvSi%2FryEo4nflrKn3DcDslD4BQ2WDvBhmUE1irHobWKZder4c8Ahh%2FJLLcAh5GmQ4%2BP20CPStDlCe3bmajLdp%2BxZtBWrjedDsnY8s26S2cJiGVemIypUBynR4i%2BPI3O1V%2FTvdM7ZQljaVBSQYQtzrfIgpUzLl2vex8OghXyAKJeBoAE%2FTekVJwu6f2idq%2FujvKjeCmzDZnzmXNBXbZZw4U%2FZQNLXDeKuLNfsk3K8qBwm95tero%2BJL7Dkw%2B%2BT4kwY6sgKok9NC%2FXIQslYa4zpgga7ef1yQndA5Mbk57uRcw1WWMMGwSdxwkgnLAJJEEKxOhS1Hv0o3rdqBXKXKzpTQuWsIklJh1G6lSD81CUGeTrLG2siPDdsKspEQsmeV6EIqcrCfpSmraN%2BNzk28ECSJETiku10hJQIDeGKOCIW7HLH532eqX1XojJ7MYINndPrMy259IFHVtafIWgIC7DQTuQKjbMm4jW%2BUXwt6D7P3%2BZYFnj4gxexe3rw%2FZyUv964ZxYs%2FRwmzY0uVMGoMoayJvuq6CBHbVSu5kpLOYPq2t4LqlDmyqqYau%2FfzeEV9lsffL2c5RbILQFu%2B%2BSevBEHWi0QJav%2Bmx7SZq67Q9Q4NwZFvp%2FhyAx5eHzqEGTn6mQ9irXR6k32GRRlRHMnBMmKVpJJaP9Q%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20220513T152052Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=ASIA3LYRD2BBS6NO6FLI%2F20220513%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=48e0596f42faf1b075d7c6ed732305d88d964c861b6af90d22fdf9c54e4ef57a";
+
 const uint8_t starfield_cacert_aws_s3_start[] asm("_binary_ota_ca_starfield_crt_pem_start");
 const uint8_t starfield_cacert_aws_s3_end[] asm("_binary_ota_ca_starfield_crt_pem_end");
+const uint8_t baltimore_cacert_aws_s3_start[] asm("_binary_ota_ca_baltimore_crt_pem_start");
+const uint8_t baltimore_cacert_aws_s3_end[] asm("_binary_ota_ca_baltimor_crt_pem_end");
 
 
 httpd_handle_t server = NULL;
@@ -74,14 +80,6 @@ static esp_err_t validate_image_header(esp_app_desc_t *new_app_info)
     char dummyver[32] = "0.2";
     if (memcmp(new_app_info->version, dummyver/*running_app_info.version*/, sizeof(new_app_info->version)) == 0) {
         ESP_LOGW(__func__, "current running version is the same as a new. we will not continue the update.");
-#if JOBS_FOR_OTA
-        //Send SUCCEEDED for jobs, since already upgraded
-        if(jobs_ota.jobsOtaStarted) {
-        	printf("sending job succeeded\n");
-        	//jobs_send_update(&mqttClient, JOB_EXECUTION_SUCCEEDED);
-        	jobs_ota.jobExecStatus = JOB_EXECUTION_SUCCEEDED;
-        }
-#endif
         return ESP_FAIL;
     }
 #endif
@@ -98,10 +96,10 @@ int16_t process_cloud_ota(int type)
 		.buffer_size_tx = 2048, //Because of signed url 2k is required
         .keep_alive_enable = true,
     };
-
+	ESP_LOGI("OTA","%s",(char *)starfield_cacert_aws_s3_start);
     const esp_partition_t *update_partition = esp_ota_get_next_update_partition(NULL);
 	config.url = (char*)ota_url;
-
+	ESP_LOGI("OTA","url :  %s",(char*)ota_url);
 	esp_https_ota_config_t ota_config = {
 		.http_config = &config,
 	};
@@ -153,8 +151,12 @@ int16_t process_cloud_ota(int type)
 		// the OTA image was not completely received and user can customize the response to this situation.
 		ESP_LOGE(__func__, "complete data was not received");
 	}
-
+	
 	ota_end:
+	if(err == ESP_OK)
+		ota_finish_err = esp_https_ota_finish(https_ota_handle);
+	else
+		esp_https_ota_abort(https_ota_handle);
 	if ((err == ESP_OK) && (ota_finish_err == ESP_OK)) {
 		ESP_LOGI(__func__, "esp_https_ota_finish successful... rebooting ...");
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
