@@ -12,7 +12,7 @@
 #include "esp_https_ota.h"
 #include "esp_http_client.h"
 
-char ota_url[100];
+char ota_url[2048];
 #define SIGNATURE_MAX_LENGTH 1024
 enum {
 	START_WEBSERVER = 0,
