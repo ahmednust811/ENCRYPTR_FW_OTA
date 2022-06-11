@@ -19,7 +19,7 @@
 #include "lwip/sys.h"
 #include <sys/random.h>
 #include "esp_timer.h"
-#include "esp_sntp.h"
+//#include "esp_sntp.h"
 #include <time.h>
 #include <sys/time.h>
 
@@ -33,7 +33,7 @@ void wifi_init_sta(void);
 
 
 //QueueHandle_t xQueue1;
-void mqtt_app_start(void);
+//void mqtt_app_start(void);
 
 /**********************************************TYPEDEFS******************************************/
 

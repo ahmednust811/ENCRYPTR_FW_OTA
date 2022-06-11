@@ -13,7 +13,8 @@
 
 void app_main(void){
 
-	printf("OTA Test binary");
+	printf("<===================== I AM BASE FIRMWARE!!!!!!!!!!! ===============================>");
+	vTaskDelay(10000/portTICK_PERIOD_MS);
 	//Initialize NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -27,11 +28,11 @@ void app_main(void){
 		abort();
 	}
 	vTaskDelay(1000/ portTICK_PERIOD_MS);
-	if(xTaskCreate(uart_task, "UART_TASK", 1024*2, NULL, 2, NULL)!=pdPASS)
+	/*if(xTaskCreate(uart_task, "UART_TASK", 1024*2, NULL, 2, NULL)!=pdPASS)
 	{
 		printf("UART_TASK  creation failed aborting....!!!!");
 		abort();
-	}
+	}*/
 	vTaskDelay(100/ portTICK_PERIOD_MS);
 	wifi_init_sta();
 

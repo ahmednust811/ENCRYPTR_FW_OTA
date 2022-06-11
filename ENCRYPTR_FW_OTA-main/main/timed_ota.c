@@ -1,17 +1,21 @@
 #include "ota_task.h"
 #include "main.h"
 #include "timed_ota.h"
-#define expiry_time_secs 60;
+#include "sntp/sntp.h"
+#define expiry_time_secs 60
+char* TAG = "timed_ota";
 void timed_task(){
-     sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    ESP_LOGI(TAG,"WAITING FOR SNTP");
- sntp_setservername(0, "time.google.com");
+     //sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    
+ //sntp_setservername(0, "time.google.com");
+    ///ESP_LOGI(TAG,"WAITING FOR SNTP");
     //sntp_setservername(1,"time.nist.gov");
-    sntp_init();
+    //sntp_init();
  time_t now;
     time(&now);
     uint32_t iat = now;              // Set the time now.
     uint32_t exp = iat + expiry_time_secs;
+    ESP_LOGI(TAG,"iat: %u,exp: %u",iat,exp);
     while(1){
 
         if(iat>exp){
@@ -26,7 +30,7 @@ void timed_task(){
         }
         time(&now);
         iat = now;
-        ESP_LOGI("OTA to take place in:","%lu seconds",exp-now);
+        ESP_LOGI("OTA to take place in:","%u seconds",exp-iat);
          vTaskDelay(1000 / portTICK_RATE_MS);
     } 
 
